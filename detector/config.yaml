@@ -1,0 +1,23 @@
+app:
+  log_file: "/var/log/nginx/hng-access.log"
+  audit_log: "/var/log/nginx/detector-audit.log"
+  window_size_seconds: 60
+  baseline_history_minutes: 30
+
+thresholds:
+  z_score_limit: 3.0
+  rate_multiplier_limit: 5.0
+  error_surge_multiplier: 3.0
+
+backoff_schedule:
+  - 600      # 10 minutes (in seconds)
+  - 1800     # 30 minutes
+  - 7200     # 2 hours
+  - -1       # Permanent (-1 indicates no expiration)
+
+slack:
+  webhook_url: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+
+dashboard:
+  host: "0.0.0.0"
+  port: 5000

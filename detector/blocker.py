@@ -22,11 +22,12 @@ class Blocker:
         
         # 2. Execute iptables DROP rule on host system targeting DOCKER-USER
         try:
-            # Note: Requires sudo permissions without password prompts for the daemon user
-            subprocess.run(['sudo', 'iptables', '-I', 'DOCKER-USER', '-s', ip, '-j', 'DROP'], check=True)
+            # Container runs as root, so sudo is not needed
+            subprocess.run(['iptables', '-I', 'DOCKER-USER', '-s', ip, '-j', 'DROP'], check=True)
             self.banned_ips.add(ip)
+            logging.info(f'BANNED IP {ip} for {duration}s | Condition: {condition}')
         except Exception as e:
-            logging.error(f"Failed to ban IP {ip}: {e}")
+            logging.error(f'Failed to ban IP {ip}: {e}')
             return 0
             
         # 3. Tell the Unbanner to schedule a removal for later
@@ -43,15 +44,20 @@ class Blocker:
         timestamp = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
         # Format: [timestamp] ACTION ip | condition | rate | baseline | duration
         log_line = f"[{timestamp}] {action} {ip} | {condition} | {rate} | {baseline:.2f} | {duration}\n"
-        with open(self.audit_log_path, 'a') as f:
-            f.write(log_line)
+        try:
+            with open(self.audit_log_path, 'a') as f:
+                f.write(log_line)
+            logging.info(f'Audit log written: {action} {ip}')
+        except Exception as e:
+            logging.error(f'Failed to write audit log: {e}')
             
     def unban_ip_manually(self, ip):
         """Called automatically by unbanner.py when schedule expires."""
         if ip in self.banned_ips:
             try:
-                subprocess.run(['sudo', 'iptables', '-D', 'DOCKER-USER', '-s', ip, '-j', 'DROP'], check=True)
+                subprocess.run(['iptables', '-D', 'DOCKER-USER', '-s', ip, '-j', 'DROP'], check=True)
                 self.banned_ips.remove(ip)
+                logging.info(f'UNBANNED IP {ip}')
                 self._write_audit("UNBAN", ip, "Schedule Expired", 0, 0, 0)
                 return True
             except Exception as e:

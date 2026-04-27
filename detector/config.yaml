@@ -1,6 +1,6 @@
 app:
   log_file: "/var/log/nginx/hng-access.log"
-  audit_log: "/var/log/nginx/detector-audit.log"
+  audit_log: "/app/detector-audit.log"
   window_size_seconds: 60
   baseline_history_minutes: 30
 

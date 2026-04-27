@@ -1,5 +1,6 @@
 import requests
 import time
+import logging
 
 class Notifier:
     def __init__(self, webhook_url):
@@ -26,6 +27,7 @@ class Notifier:
         payload = {"text": message}
         try:
             # We timeout at 5 seconds so we don't accidentally block the thread
-            requests.post(self.webhook_url, json=payload, timeout=5)
-        except Exception:
-            pass # Fail silently as this is an auxiliary feature
+            r = requests.post(self.webhook_url, json=payload, timeout=5)
+            logging.info(f'Slack alert sent for {ip}: status={r.status_code} response={r.text}')
+        except Exception as e:
+            logging.error(f'Slack alert FAILED for {ip}: {e}')

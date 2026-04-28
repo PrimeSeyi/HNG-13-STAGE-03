@@ -166,6 +166,7 @@ git clone https://github.com/PrimeSeyi/HNG-13-STAGE-03.git ~/HNG-13-STAGE-03
 cd ~/HNG-13-STAGE-03
 
 # Inject the real Slack webhook (never commit this — it stays on the server only)
+# sed -i 's|YOUR/WEBHOOK/URL|YOUR_REAL_SLACK_WEBHOOK_HERE|' detector/config.yaml
 sed -i 's|YOUR/WEBHOOK/URL|YOUR_REAL_SLACK_WEBHOOK_HERE|' detector/config.yaml
 ```
 
@@ -205,7 +206,7 @@ sudo docker logs $(sudo docker ps -qf "name=detector") --tail 10
 ```
 cd ~/HNG-13-STAGE-03
 git pull
-sed -i 's|YOUR/WEBHOOK/URL|YOUR_REAL_SLACK_WEBHOOK_HERE|' detector/config.yaml
+sed -i 's|YOUR/WEBHOOK/URL|T0AUWBEPBC7/B0B0ANML7Q9/p7Yhp2uvvU16W07Jx2nEqRzv|' detector/config.yaml
 sudo docker compose up --build -d
 ```
 

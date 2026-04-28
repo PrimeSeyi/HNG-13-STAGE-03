@@ -1,5 +1,6 @@
 version: '3.8'
 
+volumes:
   HNG-nginx-logs:
     name: HNG-nginx-logs  # Force exact name — Docker Compose won't prepend project prefix
   nextcloud_data:

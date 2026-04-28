@@ -1,7 +1,7 @@
 version: '3.8'
 
-volumes:
   HNG-nginx-logs:
+    name: HNG-nginx-logs  # Force exact name — Docker Compose won't prepend project prefix
   nextcloud_data:
   db_data:
 
@@ -19,7 +19,7 @@ services:
       - MYSQL_USER=nextcloud
 
   nextcloud:
-    image: nextcloud:latest
+    image: kefaslungu/hng-nextcloud  # Pre-built image specified in instructions — do not change
     restart: always
     links:
       - db

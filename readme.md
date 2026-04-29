@@ -269,4 +269,4 @@ HNG-13-STAGE-03/
 
 ## Blog Post
 
-_TODO: Link to published blog post_
+https://medium.com/@ibrowizzy93/building-an-ai-style-anomaly-detector-from-scratch-a-beginners-guide-to-protecting-your-cloud-662ce3c07b6a

@@ -29,7 +29,11 @@ def main():
 
     # 2. Initialize Core Components
     monitor = LogMonitor(log_file=config['app']['log_file'], window_size=config['app']['window_size_seconds'])
-    baseline_calc = BaselineCalculator(monitor=monitor, history_minutes=config['app']['baseline_history_minutes'])
+    baseline_calc = BaselineCalculator(
+        monitor=monitor, 
+        history_minutes=config['app']['baseline_history_minutes'],
+        audit_log_path=config['app']['audit_log']
+    )
     
     notifier = Notifier(webhook_url=config['slack']['webhook_url'])
     unbanner = Unbanner(backoff_schedule=config['backoff_schedule'], notifier=notifier)

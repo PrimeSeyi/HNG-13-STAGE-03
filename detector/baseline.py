@@ -5,9 +5,10 @@ import threading
 import logging
 
 class BaselineCalculator:
-    def __init__(self, monitor, history_minutes=30):
+    def __init__(self, monitor, history_minutes=30, audit_log_path="/app/detector-audit.log"):
         self.monitor = monitor
         self.history_seconds = history_minutes * 60
+        self.audit_log_path = audit_log_path
         
         # Hash maps for the rolling 30-minute window (timestamp -> requests)
         self.history_counts = {}
@@ -109,6 +110,21 @@ class BaselineCalculator:
             self.current_mean = mean
             self.current_stddev = stddev
             self.current_error_rate = error_rate
+            
+        # 6. Write Audit Log
+        self._write_audit(self.current_mean, self.current_stddev)
+
+    def _write_audit(self, mean, stddev):
+        """Writes structured baseline events to the audit log."""
+        timestamp = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+        # [timestamp] ACTION ip | condition | rate | baseline | duration
+        log_line = f"[{timestamp}] BASELINE GLOBAL | Recalculated | 0 | {mean:.2f} | 0\n"
+        try:
+            with open(self.audit_log_path, 'a') as f:
+                f.write(log_line)
+            logging.info(f'Audit log written: BASELINE RECALCULATED (Mean: {mean:.2f})')
+        except Exception as e:
+            logging.error(f'Failed to write baseline audit log: {e}')
 
     def get_baselines(self):
         """Returns the current computed baselines for the detector."""

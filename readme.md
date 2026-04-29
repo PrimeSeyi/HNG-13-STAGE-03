@@ -7,7 +7,7 @@ A production-grade, real-time anomaly detection engine built to protect a Nextcl
 | Resource | URL |
 |----------|-----|
 | **Server IP** | `20.169.136.102` |
-| **Metrics Dashboard** | `http://YOUR_DOMAIN_HERE` |
+| **Metrics Dashboard** | `http://nepobaby.eastus.cloudapp.azure.com` |
 | **Nextcloud** | `http://20.169.136.102` (IP-only access) |
 | **GitHub Repository** | [github.com/PrimeSeyi/HNG-13-STAGE-03](https://github.com/PrimeSeyi/HNG-13-STAGE-03) |
 

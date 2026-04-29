@@ -99,16 +99,16 @@ This configuration was updated to route traffic cleanly between Nextcloud and th
     # 2. Domain Server: Domain traffic routes to the Python Dashboard
     server {
         listen 80;
-        server_name ~^(?!^[0-9.]+$).*$; 
+        server_name nepobaby.eastus.cloudapp.azure.com; 
         location / { proxy_pass http://172.17.0.1:5000; }
     }
 ```
 
 **What happens:**
-Your instructions required the Dashboard to be served via a Domain, and Nextcloud to be served via IP address. We added a `server_name` Regex rule: `~^(?!^[0-9.]+$).*$`. This mathematical regex matches any HTTP request whose "Host" header contains letters (a domain). If a domain is used, Nginx routes the traffic to `172.17.0.1:5000` (which is the Docker gateway IP leading to our `network_mode: host` Python daemon). If an IP address is typed in the browser, the regex fails, and it falls back to the `default_server` block, routing to Nextcloud.
+Your instructions required the Dashboard to be served via a Domain, and Nextcloud to be served via IP address. We added a `server_name` rule: `nepobaby.eastus.cloudapp.azure.com`. If this specific Azure domain is used, Nginx routes the traffic to `172.17.0.1:5000` (which is the Docker gateway IP leading to our `network_mode: host` Python daemon). If an IP address is typed in the browser, it falls back to the `default_server` block, routing to Nextcloud.
 
 **Example:**
-You type `192.168.1.100` in the browser. Nginx routes you to Nextcloud. You type `metrics.yourdomain.com` in the browser. Nginx routes you to the Python Flask dashboard.
+You type `20.169.136.102` in the browser. Nginx routes you to Nextcloud. You type `nepobaby.eastus.cloudapp.azure.com` in the browser. Nginx routes you to the Python Flask dashboard.
 
 ### 4. `provision.sh` (The Bootstrapper)
 This file was rewritten to handle remote code uploading.

@@ -40,24 +40,31 @@ class AnomalyDetector:
             return
             
         # 3. Check for Global DDoS Attack (Spike across all IPs)
-        self._check_anomaly("GLOBAL", global_rate, mean, stddev, 0, baseline_error_rate)
+        # Convert absolute counts in 60s to requests per second
+        global_rps = global_rate / 60.0
+        self._check_anomaly("GLOBAL", global_rps, mean, stddev, 0, baseline_error_rate)
             
         # 4. Check for Per-IP Attacks
         for ip, rate in ip_rates.items():
             if self.blocker.is_banned(ip):
                 continue # Skip processing for already banned IPs
                 
-            ip_error_rate = ip_errors.get(ip, 0)
-            self._check_anomaly(ip, rate, mean, stddev, ip_error_rate, baseline_error_rate)
+            ip_rps = rate / 60.0
+            ip_error_rps = ip_errors.get(ip, 0) / 60.0
+            self._check_anomaly(ip, ip_rps, mean, stddev, ip_error_rps, baseline_error_rate)
             
     def _check_anomaly(self, entity, current_rate, mean, stddev, ip_error_rate, baseline_error_rate):
         """Evaluates math thresholds and triggers blocking/alerts if exceeded."""
         
+        # Ignore trivial traffic (less than 1 request per second)
+        if current_rate < 1.0:
+            return
+            
+        # Add a floor to stddev to prevent infinity z-scores during perfectly flat traffic
+        safe_stddev = max(stddev, 0.5)
+        
         # Calculate standard Z-score
-        if stddev > 0:
-            z_score = (current_rate - mean) / stddev
-        else:
-            z_score = 0.0 if current_rate <= mean else float('inf')
+        z_score = (current_rate - mean) / safe_stddev
             
         # Error Surge Check: Tighten thresholds automatically
         active_z_limit = self.z_limit
@@ -71,27 +78,33 @@ class AnomalyDetector:
         is_anomalous = False
         condition_fired = ""
         
-        # Trigger Condition 1: Z-score > 3.0
+        # Trigger Condition 1: Z-score > limit
         if z_score > active_z_limit:
             is_anomalous = True
             condition_fired = f"Z-Score {z_score:.2f} > {active_z_limit:.2f}"
             
-        # Trigger Condition 2: Rate is more than 5x the baseline mean
-        elif current_rate > (mean * active_rate_limit):
+        # Trigger Condition 2: Rate is more than Xx the baseline mean
+        safe_mean = max(mean, 1.0) # floor mean for multiplier logic
+        if current_rate > (safe_mean * active_rate_limit):
             is_anomalous = True
-            condition_fired = f"Rate {current_rate} > {active_rate_limit}x Mean ({mean:.2f})"
+            condition_fired = f"Rate {current_rate:.2f} > {active_rate_limit}x Mean ({mean:.2f})"
             
         # Trigger Actions
         if is_anomalous:
             if entity == "GLOBAL":
-                # Global anomaly -> Slack alert only
-                self.notifier.send_alert(
-                    ip="GLOBAL", 
-                    condition=condition_fired, 
-                    rate=current_rate, 
-                    baseline=mean, 
-                    duration=0
-                )
+                # Rate limit global alerts to 1 per 60 seconds
+                now = time.time()
+                if not hasattr(self, 'last_global_alert'):
+                    self.last_global_alert = 0
+                if now - self.last_global_alert > 60:
+                    self.notifier.send_alert(
+                        ip="GLOBAL", 
+                        condition=condition_fired, 
+                        rate=current_rate, 
+                        baseline=mean, 
+                        duration=0
+                    )
+                    self.last_global_alert = now
             else:
                 # Per-IP Anomaly -> Ban IP + Slack Alert
                 duration = self.blocker.ban_ip(entity, condition_fired, current_rate, mean)

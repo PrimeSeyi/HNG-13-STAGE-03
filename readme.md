@@ -203,16 +203,7 @@ curl -s http://localhost:5000/api/metrics
 sudo docker logs $(sudo docker ps -qf "name=detector") --tail 10
 ```
 
----
 
-## Quick Redeploy (After Code Changes)
-
-```
-cd ~/HNG-13-STAGE-03
-git pull
-sed -i 's|YOUR/WEBHOOK/URL|T0AUWBEPBC7/B0B0ANML7Q9/p7Yhp2uvvU16W07Jx2nEqRzv|' detector/config.yaml
-sudo docker compose up --build -d
-```
 
 ---
 

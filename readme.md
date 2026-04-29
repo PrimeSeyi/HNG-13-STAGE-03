@@ -105,9 +105,13 @@ def _recalculate(self):
     self.stddev = statistics.stdev(self.history)
 ```
 
-### Floor Values
+### Floor Values and Safety Nets
 
-If the standard deviation is `0.0` (which happens when traffic is perfectly flat), the detector treats any rate above the mean as `z_score = infinity`, which automatically triggers a detection. This prevents the system from becoming blind during low-traffic periods where every request looks identical.
+To prevent false positives, especially during periods of zero traffic where mathematics break down (division by zero), the system enforces strict floor values:
+
+1. **Trivial Traffic Ignore**: If an IP's current rate is less than `1.0` request per second (meaning fewer than 60 requests in the last minute), the detector completely ignores it. This ensures normal users browsing the site are never evaluated for an anomaly.
+2. **Standard Deviation Floor**: The standard deviation is mathematically floored to a minimum of `0.5`. If the server is completely idle (stddev = 0.0), any single request would normally trigger an "Infinity" Z-score. The `0.5` floor guarantees that small traffic bursts on an idle server won't trigger instant bans.
+3. **Mean Floor**: For the Rate Multiplier calculation (`current_rate > mean * 5`), the mean is floored to a minimum of `1.0`.
 
 The mean is never allowed to be used for detection until at least 60 seconds of data has been collected (the first baseline cycle). Before that, `get_baselines()` returns `mean=0.0`, which causes `detector.py` to skip all anomaly checks with an early `return`.
 

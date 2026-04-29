@@ -81,17 +81,18 @@ This function orchestrates the data gathering. It fetches live data and mathemat
 At `10:00:02`, `detect()` discovers `ip_rates` contains `{"192.168.1.5": 20}`. The `blocker` confirms `192.168.1.5` is not banned. It fetches the baseline (Mean `3.0`, StdDev `2.82`) and passes all this to `_check_anomaly`.
 
 ### 5. `_check_anomaly(self, entity, current_rate, mean, stddev, ip_error_rate, baseline_error_rate)`
-This is the core mathematical engine. It calculates the Z-Score and assesses the multipliers.
+This is the core mathematical engine. It calculates the Z-Score and assesses the multipliers, with safety nets built-in to prevent false positives.
 
 **What happens:**
-1. **Calculate Z-Score**: It computes `(current_rate - mean) / stddev`.
-2. **Error Surge Rule**: It checks if the IP is throwing 4xx/5xx errors at a rate greater than `baseline_error_rate * self.error_surge` (e.g., > 3x the baseline). If so, it cuts `self.z_limit` and `self.rate_limit` exactly in half.
-3. **Condition Triggers**: It checks if the calculated Z-score is greater than the active Z-limit, OR if the `current_rate` is greater than `mean * active_rate_limit`.
-4. **Action**: If a condition triggers, it branches. If the entity is `"GLOBAL"`, it only triggers `self.notifier.send_alert`. If the entity is an IP, it calls `self.blocker.ban_ip` and then `self.notifier.send_alert`.
+1. **Safety Nets**: It first ignores any `current_rate` less than `1.0` (trivial traffic). It then sets a `safe_stddev` to a minimum of `0.5` to prevent Infinity division errors during idle periods.
+2. **Calculate Z-Score**: It computes `(current_rate - mean) / safe_stddev`.
+3. **Error Surge Rule**: It checks if the IP is throwing 4xx/5xx errors at a rate greater than `baseline_error_rate * self.error_surge` (e.g., > 3x the baseline). If so, it cuts `self.z_limit` and `self.rate_limit` exactly in half.
+4. **Condition Triggers**: It checks if the calculated Z-score is greater than the active Z-limit, OR if the `current_rate` is greater than `max(mean, 1.0) * active_rate_limit`.
+5. **Action**: If a condition triggers, it branches. If the entity is `"GLOBAL"`, it checks a 60-second rate limiter to prevent spam, then triggers `self.notifier.send_alert`. If the entity is an IP, it calls `self.blocker.ban_ip` and then `self.notifier.send_alert`.
 **Example:**
-Entity is `"192.168.1.5"`. `current_rate` is `20`. `mean` is `3.0`. `stddev` is `2.82`. `ip_error_rate` is `6`. `baseline_error_rate` is `0.5`.
-Because `6` is greater than `0.5 * 3.0 (1.5)`, the Error Surge engages. The Z-limit drops from `3.0` to `1.5`. 
-Z-score is calculated: `(20 - 3.0) / 2.82 = 6.02`. 
+Entity is `"192.168.1.5"`. `current_rate` is `20.0`. `mean` is `3.0`. `stddev` is `2.82`. `ip_error_rate` is `6.0`. `baseline_error_rate` is `0.5`.
+Because `6.0` is greater than `0.5 * 3.0 (1.5)`, the Error Surge engages. The Z-limit drops from `3.0` to `1.5`. 
+Z-score is calculated: `(20.0 - 3.0) / 2.82 = 6.02`. 
 Because `6.02 > 1.5`, `is_anomalous` becomes `True`. It triggers `self.blocker.ban_ip` with the exact condition string: `"Z-Score 6.02 > 1.50"`.
 
 ---
